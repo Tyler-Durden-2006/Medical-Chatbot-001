@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediBot - AI Medical Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-box">
+            <!-- Header -->
+            <div class="chat-header">
+                <div class="header-left">
+                    <div class="bot-avatar">
+                        <i class="fas fa-stethoscope"></i>
+                        <span class="bot-status"></span>
+                    </div>
+                    <div class="header-text">
+                        <h2>MediBot</h2>
+                        <p>🟢 Online - Always here to help</p>
+                    </div>
+                </div>
+                <div class="header-icons">
+                    <button title="Info"><i class="fas fa-info-circle"></i></button>
+                    <button title="Settings"><i class="fas fa-cog"></i></button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="messages-container" id="messageFormeight">
+                <div class="bot-message">
+                    <div class="bot-avatar-small">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <div>
+                        <div class="bot-msg-bubble">
+                            👋 Hello! I'm <strong>MediBot</strong>, your AI Medical Assistant. Ask me anything about health conditions, symptoms, medications, and general medical information!
+                        </div>
+                        <div class="message-time">Just now</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="input-area">
+                <form id="messageArea" class="input-form">
+                    <input 
+                        type="text" 
+                        id="text" 
+                        name="msg" 
+                        placeholder="Ask me something... e.g., 'What are symptoms of diabetes?'" 
+                        autocomplete="off" 
+                        class="message-input" 
+                        required
+                    />
+                    <button type="submit" id="send" class="send-btn" title="Send message">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            const messagesContainer = $("#messageFormeight");
+
+            // Format time
+            function getTimeFormatted() {
+                const date = new Date();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return hours + ':' + minutes;
+            }
+
+            // Auto scroll to bottom
+            function scrollToBottom() {
+                messagesContainer.scrollTop(messagesContainer[0].scrollHeight);
+            }
+
+            // Handle form submission
+            $("#messageArea").on("submit", function(event) {
+                event.preventDefault();
+                
+                const rawText = $("#text").val().trim();
+                if (!rawText) return;
+
+                const time = getTimeFormatted();
+                
+                // User message
+                const userHtml = `
+                    <div class="user-message">
+                        <div>
+                            <div class="user-msg-bubble">${rawText}</div>
+                            <div class="message-time">${time}</div>
+                        </div>
+                    </div>
+                `;
+                
+                $("#text").val("");
+                messagesContainer.append(userHtml);
+                scrollToBottom();
+
+                // Show typing indicator
+                const typingHtml = `
+                    <div class="bot-message">
+                        <div class="bot-avatar-small">
+                            <i class="fas fa-stethoscope"></i>
+                        </div>
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                `;
+                
+                const typingElement = $(typingHtml);
+                messagesContainer.append(typingElement);
+                scrollToBottom();
+
+                // Send request
+                $.ajax({
+                    data: { msg: rawText },
+                    type: "POST",
+                    url: "/get",
+                    timeout: 15000
+                }).done(function(data) {
+                    typingElement.remove();
+                    
+                    const botHtml = `
+                        <div class="bot-message">
+                            <div class="bot-avatar-small">
+                                <i class="fas fa-stethoscope"></i>
+                            </div>
+                            <div>
+                                <div class="bot-msg-bubble">${data}</div>
+                                <div class="message-time">${time}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    messagesContainer.append(botHtml);
+                    scrollToBottom();
+                }).fail(function() {
+                    typingElement.remove();
+                    
+                    const errorHtml = `
+                        <div class="bot-message">
+                            <div class="bot-avatar-small">
+                                <i class="fas fa-stethoscope"></i>
+                            </div>
+                            <div>
+                                <div class="bot-msg-bubble">
+                                    ⚠️ Sorry, I encountered an error. Please try again.
+                                </div>
+                                <div class="message-time">${time}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    messagesContainer.append(errorHtml);
+                    scrollToBottom();
+                });
+            });
+
+            // Focus on input
+            $("#text").focus();
+        });
+    </script>
+</body>
+</html>
